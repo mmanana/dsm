@@ -7,7 +7,7 @@ Created on January 2017
 """ MAIN PROGRAM """
 
 """ This file can be used as an example of optimization of airports energy demand based on DSM and Monte Carlo techniques. """
-""" Application file...-."
+""" Application file "
 
 """ INITILIZATION """
 
