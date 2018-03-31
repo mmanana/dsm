@@ -1,12 +1,12 @@
 """
-Created on January 2017
+Created on December 2017
 
 @author:  Sergio Ortega & Mario Mañana 
 """
 
 """*********************************************************** """
 
-""" LIBRARIES """
+""" LIBRARIES"""
 import time
 import numpy as np
 import pandas as pd
@@ -22,7 +22,7 @@ hour_list = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25
 
 """*********************************************************** """
 
-""" CLASSES DEFINITION """
+""" CLASSES DEFINITION"""
 
 class BaseLoad:
     sName = ' '
@@ -116,6 +116,9 @@ class ShiftableLoad(BaseLoad):
         self.Qhend = Qhe
         self.Qhstartmin = Qhsmin
         self.Qhstartmax = Qhsmax
+    
+"""*********************************************************** """
+    
     
   
 """*********************************************************** """   
@@ -263,10 +266,11 @@ def LoadData(file):
 
     return LoadsList
     
+"""*********************************************************** """
+
 
 """*********************************************************** """
 
-    
 """ FUNCTION TO CALCULATE AGGREGATED POWER OF LOADS LIST IN EACH TIME SLOT """
 
 def AggregatePower( LoadsList):    
@@ -274,6 +278,10 @@ def AggregatePower( LoadsList):
     for Load in LoadsList:
         fAggregatedPower = fAggregatedPower + Load.fPowerQh
     return fAggregatedPower
+
+"""*********************************************************** """
+
+
 
 """*********************************************************** """
 
@@ -295,6 +303,8 @@ def PlotHourlyPower( Loadslist,title1,title2):
 
 
 
+
+"""*********************************************************** """ 
 
 """ ALGORITHM MONTE CARLO """
 
@@ -323,46 +333,14 @@ def MonteCarlo( LoadsList):
                 for h in range( 0, 96):
                     LoadsList1[i].fPowerQh[0,h] = fs*LoadsList[i].fPowerQh[0,h]
     return LoadsList1
-    
+"""*********************************************************** """     
+
+
+
+
 
 """*********************************************************** """
-
-""" FUNCTION: PEAK OPTIMIZATION"""
-  
-def PeakValue( LoadList):
-    fAP = AggregatePower( LoadList)
-    peakmax = np.amax(fAP)   
-    return peakmax
-    
-        
-def PeakOptimization( LoadsList, Niterations,QoS):
-
-    peaks = np.empty([1,Niterations+1])
-    total = np.empty([1,Niterations+1])
-
-    h=0
-    peaks[0,h]=PeakValue(LoadsList)
-    total[0,h]=PeakValue(LoadsList)
-
-    LoadsList1 = copy.deepcopy( LoadsList)
-
-    for h in range(0,Niterations):
-        peakmax1= PeakValue(LoadsList1)
-        LoadsList2 = copy.deepcopy(MonteCarlo( LoadsList))
-        peakmax2= PeakValue(LoadsList2)
-        total[0,h+1]=peakmax2
-        QoSLoadlist2=QoSTotalB (LoadsList,LoadsList2)
-        if (QoSLoadlist2 > QoS) & (peakmax2 < peakmax1):
-            peaks[0,h+1]=peakmax2
-            LoadsList1 = copy.deepcopy( LoadsList2)
-        else:
-            peaks[0,h+1]=peakmax1
-            LoadsList1 = copy.deepcopy( LoadsList1)       
-        h=h+1
-    return LoadsList1
-
-"""*********************************************************** """         
-
+ 
 
 """ FUNCTION: ENERGY COST CONSUMPTION OPTIMIZATION"""
   
@@ -371,9 +349,9 @@ def EnergyCost( LoadsList):
     faP = AggregatePower( LoadsList)
     
     #ENERGY COST BY PERIODS (EUROS/kWH)
-    P6=0.059875
-    P2=0.096408
-    P1=0.120736
+    P6=0.049571
+    P2=0.087605
+    P1=0.110585
     
     #PERIOD P0 TO P31
     suma=0
@@ -434,12 +412,17 @@ def EnergyCost( LoadsList):
         suma = suma+faP[0,i]
         i = i + 1
     energy=suma/4
-    EcostP84P95=energy*P1
+    EcostP84P95=energy*P2
         
     Ecosttotal=EcostP0P31+EcostP32P39+EcostP40P51+EcostP52P71+EcostP72P83+EcostP84P95
     
     return Ecosttotal
+
+"""*********************************************************** """ 
+
+
     
+"""*********************************************************** """ 
 
 def CostOptimization( LoadsList, Niterations,QoS):
 
@@ -464,158 +447,28 @@ def CostOptimization( LoadsList, Niterations,QoS):
         else:
             Ecostmin[0,h+1]=Ecost1
             LoadsList1 = copy.deepcopy( LoadsList1)
+        if ((h==9) or (h==24) or (h==49) or (h==99) or (h==249) or (h==499)):
+                print (h+1)
+                print(Ecostmin[0,h+1])
+        if  ((h==999) or (h==2499) or (h==4999) or (h==9999) ):
+                print (h+1)
+                print(Ecostmin[0,h+1])
+        if  ((h==14999) or (h==19999) or (h==24999)):
+                print (h+1)
+                print(Ecostmin[0,h+1])
+        if  ((h==29999) or (h==34999) or (h==39999)):
+                print (h+1)
+                print(Ecostmin[0,h+1])
         h=h+1
-    return LoadsList1     
+    return LoadsList1   
+  
+"""*********************************************************** """ 
 
-
-       
-            
-            
-"""*********************************************************** """  
-
-""" FUNCTION: RAMPING OPTIMIZATION"""
-
-def Ramping( LoadsList):
-    faP = AggregatePower( LoadsList)
-    Rampn1 = 0
-    Rampn2 = 0
-    Ramp = 0
-    Ramppartial = 0
-    for i in range(0,95):
-        j = i + 1
-        Rampn1 = faP[0,i]
-        Rampn2 = faP[0,j]   
-        Ramppartial = abs(Rampn2 - Rampn1)
-        Ramp = Ramp + Ramppartial
-        i = i + 1
-    return Ramp
-    
-    
-def RampingOptimization( LoadsList, Niterations, QoS):
-
-    Rampingmin = np.empty([1,Niterations+1])
-    Rampingtotal = np.empty([1,Niterations+1])
-    
-    h=0
-    Rampingmin[0,h] = Ramping( LoadsList)  
-    Rampingtotal[0,h] = Ramping( LoadsList)
-    
-    LoadsList1 = copy.deepcopy( LoadsList)
-    
-    for h in range(0,Niterations):
-        Rampingvalue1 = Ramping( LoadsList1)
-        LoadsList2 = copy.deepcopy(MonteCarlo( LoadsList))
-        Rampingvalue2 = Ramping( LoadsList2)
-        Rampingtotal[0,h+1]=Rampingvalue2
-        QoSLoadlist2=QoSTotalB (LoadsList,LoadsList2)        
-        if (QoSLoadlist2 > QoS)&(Rampingvalue2 < Rampingvalue1):
-            Rampingmin[0,h+1]=Rampingvalue2
-            LoadsList1 = copy.deepcopy( LoadsList2)
-        else:
-            Rampingmin[0,h+1]=Rampingvalue1
-            LoadsList1 = copy.deepcopy( LoadsList1)
-        h=h+1
-    return  LoadsList1  
-     
-        
-            
-"""*********************************************************** """  
-
-""" FUNCTION: PEAK-TO-VALLY OPTIMIZATION"""
-
-def PeakToValley( LoadsList):
-
-    faP = AggregatePower( LoadsList)
-    peak = np.amax(faP)
-    suma=0
-    medium=0
-    PTV=0
-    for i in range(0,24):
-        suma = suma+faP[0,i]
-        i = i + 1
-    medium=suma/24
-    PTV=peak/medium
-    return PTV
-
-    
-def OptimizacionPeaktoValley( LoadsList, Niterations, QoS ):
-    
-    PTVmin = np.empty([1,Niterations+1])
-    PTVtotal = np.empty([1,Niterations+1])
-    
-    h=0
-    PTVmin[0,h] = PeakToValley( LoadsList) 
-    PTVtotal[0,h] = PeakToValley( LoadsList)
-    
-    LoadsList1 = copy.deepcopy( LoadsList)
-    
-    for h in range(0,Niterations):
-        
-        PTV1 = PeakToValley( LoadsList1)
-        LoadsList2 = copy.deepcopy(MonteCarlo( LoadsList))
-        PTV2 = PeakToValley( LoadsList2)
-        PTVtotal[0,h+1]=PTV2
-        QoSLoadlist2=QoSTotalB (LoadsList,LoadsList2) 
-        if (QoSLoadlist2 > QoS)&(PTV2 < PTV1):
-            PTVmin[0,h+1]=PTV2
-            LoadsList1 = copy.deepcopy( LoadsList2)
-        else:
-            PTVmin[0,h+1]=PTV1
-            LoadsList1 = copy.deepcopy( LoadsList1)
-        h=h+1
-    return  LoadsList1      
-        
-"""*********************************************************** """      
-    
+      
 
 
 
 
-"""*********************************************************** """  
-
-""" FUNCTION: LOAD FACTOR"""
-
-def LoadFactor( LoadsList):
-
-    faP = AggregatePower( LoadsList)
-    peak = np.amax(faP)
-    suma=0
-    LF=0
-    for i in range(0,96):
-        suma = suma+faP[0,i]
-        i = i + 1
-    medium=suma/96
-    LF = 100*(medium/peak)
-    return LF
-
-
-def OptimizacionLoadFactor( LoadsList, Niterations, QoS):
-    
-    Loadfactormax = np.empty([1,Niterations+1])
-    Loadfactortotal = np.empty([1,Niterations+1])
-    
-    h=0
-    Loadfactormax[0,h] = LoadFactor( LoadsList)  
-    Loadfactortotal[0,h] = LoadFactor( LoadsList)
-    
-    LoadsList1 = copy.deepcopy( LoadsList)
-    
-    for h in range(0,Niterations):
-        Loadfactor1 = LoadFactor( LoadsList1)
-        LoadsList2 = copy.deepcopy(MonteCarlo( LoadsList))
-        Loadfactor2 = LoadFactor( LoadsList2)
-        Loadfactortotal[0,h+1]=Loadfactor2
-        QoSLoadlist2=QoSTotalB (LoadsList,LoadsList2) 
-        if (QoSLoadlist2 > QoS)&(Loadfactor2 > Loadfactor1):
-            Loadfactormax[0,h+1]=Loadfactor2
-            LoadsList1 = copy.deepcopy( LoadsList2)
-        else:
-            Loadfactormax[0,h+1]=Loadfactor1
-            LoadsList1 = copy.deepcopy( LoadsList1)
-        h=h+1
-    return LoadsList1
-    
-            
           
 
 """*********************************************************** """  
@@ -708,6 +561,15 @@ def QoSTotalB( LoadsList, OptimizedList):
     
 """*********************************************************** """  
 
+
+
+
+
+
+
+
+
+"""*********************************************************** """ 
 
 """ FUNCTION TO WRITE OPTIMIZED LOAD LIST IN EXCEL FILE """
 
