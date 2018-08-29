@@ -1,5 +1,6 @@
 """
 Created on December 2017
+Last update: August 2018
 
 @author:  Sergio Ortega & Mario Mañana 
 """
@@ -302,10 +303,52 @@ def PlotHourlyPower( Loadslist,title1,title2):
 """*********************************************************** """
 
 
+"""*********************************************************** """ 
+def CostOptimizationMC( LoadsList, Niterations, QoS):
+
+    Ecostmin = np.empty([1,Niterations+1])
+    Ecosttotal = np.empty([1,Niterations+1])
+
+    h=0
+    Ecostmin[0,h] = EnergyCost( LoadsList) 
+    Ecosttotal[0,h] = EnergyCost( LoadsList)
+
+    LoadsList1 = copy.deepcopy( LoadsList)
+
+    for h in range(0,Niterations):
+        Ecost1 = EnergyCost( LoadsList1)
+
+        LoadsList2 = copy.deepcopy(MonteCarlo( LoadsList))
+
+
+        Ecost2 = EnergyCost( LoadsList2)
+        Ecosttotal[0,h+1]=Ecost2
+        QoSLoadlist2=QoSTotalB (LoadsList,LoadsList2)
+        if (QoSLoadlist2 > QoS) & (Ecost2 < Ecost1):
+            Ecostmin[0,h+1]=Ecost2
+            LoadsList1 = copy.deepcopy( LoadsList2)
+        else:
+            Ecostmin[0,h+1]=Ecost1
+            LoadsList1 = copy.deepcopy( LoadsList1)
+        if ((h==9) or (h==24) or (h==49) or (h==99) or (h==249) or (h==499)):
+                print (h+1)
+                print(Ecostmin[0,h+1])
+        if  ((h==999) or (h==2499) or (h==4999) or (h==9999) ):
+                print (h+1)
+                print(Ecostmin[0,h+1])
+        if  ((h==14999) or (h==19999) or (h==24999)):
+                print (h+1)
+                print(Ecostmin[0,h+1])
+        if  ((h==29999) or (h==34999) or (h==39999)):
+                print (h+1)
+                print(Ecostmin[0,h+1])
+        h=h+1
+    return LoadsList1   
+  
+"""*********************************************************** """ 
 
 
 """*********************************************************** """ 
-
 """ ALGORITHM MONTE CARLO """
 
 def MonteCarlo( LoadsList):    
@@ -338,10 +381,114 @@ def MonteCarlo( LoadsList):
 
 
 
+"""*********************************************************** """ 
+def CostOptimizationSA( LoadsList, Niterations, QoS):
+
+    # Number of cycles - defined in function CostOptimization
+    M=Niterations
+    # Number of trials per cycle
+    N=5
+    # Number of accepted solutions
+    na=0.0
+    # 
+    k=0.1
+    # Initial Temperature
+    T0=1000.0
+    # Cooling rate
+    alpha=0.85
+    # Temperatures during cooling process
+    temp=[]
+    
+    
+    Ecostmin = np.empty([1,M*N+1])
+    Ecosttotal = np.empty([1,M*N+1])
+
+    h=0
+    Ecostmin[0,h] = EnergyCost( LoadsList) 
+    Ecosttotal[0,h] = EnergyCost( LoadsList)
+
+    LoadsList1 = copy.deepcopy( LoadsList)
+
+    for i in range(0,M):
+        for j in range(0,N):
+            Ecost1 = EnergyCost( LoadsList1)
+            LoadsList2 = copy.deepcopy(SimulatedAnnealing( LoadsList1, k))
+            Ecost2 = EnergyCost( LoadsList2)
+            Ecosttotal[0,h+1]=Ecost2
+            
+            ran_1=np.random.rand()
+            form=1/(np.exp((Ecost2-Ecost1)/T0))
+            
+            QoSLoadlist2=QoSTotalB (LoadsList,LoadsList2)
+            
+            if (QoSLoadlist2 >= QoS) & (Ecost2 <= Ecost1):
+                Ecostmin[0,h+1]=Ecost2
+                LoadsList1 = copy.deepcopy( LoadsList2)
+            elif ran_1 <= form:
+                Ecostmin[0,h+1]=Ecost2
+                LoadsList1 = copy.deepcopy( LoadsList2)
+            else:
+                Ecostmin[0,h+1]=Ecost1
+                LoadsList1 = copy.deepcopy( LoadsList1)
+            if ((h==9) or (h==24) or (h==49) or (h==99) or (h==249) or (h==499)):
+                print (h+1)
+                print(Ecostmin[0,h+1])
+            if  ((h==999) or (h==2499) or (h==4999) or (h==9999) ):
+                print (h+1)
+                print(Ecostmin[0,h+1])
+            if  ((h==14999) or (h==19999) or (h==24999)):
+                print (h+1)
+                print(Ecostmin[0,h+1])
+            if  ((h==29999) or (h==34999) or (h==39999)):
+                print (h+1)
+                print(Ecostmin[0,h+1])
+            h=h+1
+        temp=np.append(temp,T0)
+        T0=alpha*T0
+    plt.plot(temp)
+    return LoadsList1   
+  
+"""*********************************************************** """ 
+
+
+"""*********************************************************** """ 
+""" ALGORITHM SIMULATED ANNEALING """
+
+def SimulatedAnnealing( LoadsList, k):
+
+   
+    LoadsList1 = copy.deepcopy( LoadsList)
+    for i in range(len(LoadsList1)):
+        if LoadsList1[i].sType == 'Interruptible':
+            r = random.randint(1,100)
+            if r < 20:            
+                LoadsList1[i].fPowerQh = np.array(np.zeros([1,96]))
+                LoadsList1[i].SetStatus( 0)
+        elif LoadsList1[i].sType == 'Shiftable':
+            h = random.randint( LoadsList1[i].Qhstartmin, LoadsList1[i].Qhstartmax)
+            D = LoadsList1[i].Qhend - LoadsList1[i].Qhstart 
+            LoadsList1[i].fPowerQh = np.array(np.zeros([1,96]))
+            for j in range( h, h+D+1):
+                LoadsList1[i].fPowerQh[0,j] = LoadsList[i].fPowerQh[0,j-h+LoadsList1[i].Qhstart]
+                LoadsList1[i].Qhstart=h
+                LoadsList1[i].Qhend=h+D 
+        elif LoadsList1[i].sType == 'Elastic':
+            if LoadsList1[i].sSubType == 'modulable':
+                fs=LoadsList1[i].fScale
+                fsmin = LoadsList1[i].fScaleMin
+                fsnew = random.normalvariate( fs, k*fs*0.1)
+                fs = max( fsmin, fsnew)
+                LoadsList1[i].SetScale( fs)
+                for h in range( 0, 96):
+                    LoadsList1[i].fPowerQh[0,h] = fs*LoadsList[i].fPowerQh[0,h]
+    return LoadsList1
+"""*********************************************************** """  
+
+
+
+
 
 """*********************************************************** """
- 
-
 """ FUNCTION: ENERGY COST CONSUMPTION OPTIMIZATION"""
   
 def EnergyCost( LoadsList):
@@ -422,47 +569,6 @@ def EnergyCost( LoadsList):
 
 
     
-"""*********************************************************** """ 
-
-def CostOptimization( LoadsList, Niterations,QoS):
-
-    Ecostmin = np.empty([1,Niterations+1])
-    Ecosttotal = np.empty([1,Niterations+1])
-
-    h=0
-    Ecostmin[0,h] = EnergyCost( LoadsList) 
-    Ecosttotal[0,h] = EnergyCost( LoadsList)
-
-    LoadsList1 = copy.deepcopy( LoadsList)
-
-    for h in range(0,Niterations):
-        Ecost1 = EnergyCost( LoadsList1)
-        LoadsList2 = copy.deepcopy(MonteCarlo( LoadsList))
-        Ecost2 = EnergyCost( LoadsList2)
-        Ecosttotal[0,h+1]=Ecost2
-        QoSLoadlist2=QoSTotalB (LoadsList,LoadsList2)
-        if (QoSLoadlist2 > QoS) & (Ecost2 < Ecost1):
-            Ecostmin[0,h+1]=Ecost2
-            LoadsList1 = copy.deepcopy( LoadsList2)
-        else:
-            Ecostmin[0,h+1]=Ecost1
-            LoadsList1 = copy.deepcopy( LoadsList1)
-        if ((h==9) or (h==24) or (h==49) or (h==99) or (h==249) or (h==499)):
-                print (h+1)
-                print(Ecostmin[0,h+1])
-        if  ((h==999) or (h==2499) or (h==4999) or (h==9999) ):
-                print (h+1)
-                print(Ecostmin[0,h+1])
-        if  ((h==14999) or (h==19999) or (h==24999)):
-                print (h+1)
-                print(Ecostmin[0,h+1])
-        if  ((h==29999) or (h==34999) or (h==39999)):
-                print (h+1)
-                print(Ecostmin[0,h+1])
-        h=h+1
-    return LoadsList1   
-  
-"""*********************************************************** """ 
 
       
 
