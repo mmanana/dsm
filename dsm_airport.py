@@ -1,4 +1,4 @@
-"""
+  """
 Created on December 2017
 Last Update: August 2018
 
@@ -30,7 +30,7 @@ LoadsList = dsm.LoadData( file)
 """ Number of iterations"""
 #N =input("Number of main iterations?: ")
 #N=int(N)
-N=100
+N=1000
 
 """Minimum Quality of service"""
 #QoS =input("Minimum quality of service?: ")
