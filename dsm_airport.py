@@ -1,6 +1,6 @@
-  """
+"""
 Created on December 2017
-Last Update: August 2018
+Last Update: 10th June 2020
 
 @author:  Sergio Ortega & Mario Mañana 
 """
@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 
 """ Function LoadData """
 # Function to load loads list from excel file 
-file = 'loads-airport.xlsx'
+file = 'loads-gsw.xlsx'
 LoadsList = dsm.LoadData( file) 
 
 """ Number of iterations"""
@@ -51,7 +51,7 @@ TOO=TypesOfOpt[1]
 print( '')
 print( '')
 print( '*********************************************************************')
-print( 'AIRPORT LOAD SCHEDULING BASED ON DSM ')
+print( 'LOAD SCHEDULING BASED ON DSM ')
 print( 'STRATEGIES AND  OPTIMIZATION METHODOLOGIES')
 print( '*********************************************************************')
 print( 'Python: ' + str(sys.version))
