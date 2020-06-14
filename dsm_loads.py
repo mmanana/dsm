@@ -1,6 +1,6 @@
 """
 Created on December 2017
-Last update: August 2018
+Last update: 10th June 2020
 
 @author:  Sergio Ortega & Mario Mañana 
 """
@@ -75,6 +75,7 @@ class BaseLoad:
         self.fEtot = Etot
         
 
+"""INTERRUPTIBLE LOAD"""
 class InterruptibleLoad(BaseLoad):
     clasename = 'InterruptibleLoad'    
         
@@ -83,7 +84,8 @@ class InterruptibleLoad(BaseLoad):
 class StaticLoad (BaseLoad):
     clasename = 'StaticLoad'
     
-    
+
+"""ELASTIC LOAD"""    
 class ElasticLoad (BaseLoad):
     clasename = 'ElasticLoad'    
 
@@ -104,6 +106,7 @@ class ElasticLoad (BaseLoad):
         self.fScale = Scale
   
 
+"""SHIFTABLE LOAD"""
 class ShiftableLoad(BaseLoad):
     clasename = 'ShiftableLoad'        
     
@@ -202,10 +205,10 @@ def LoadData(file):
         LoadsList[h].SetPN( fPN)
         fEtot = tableShiftabled[:]['Etot'].iloc[i]
         LoadsList[h].SetEtot( fEtot)        
-        Qhs = tableShiftabled[:]['Qhstart'].iloc[i]
-        Qhe = tableShiftabled[:]['Qhend'].iloc[i]
-        Qhsmin = tableShiftabled[:]['Qhstartmin'].iloc[i]
-        Qhsmax = tableShiftabled[:]['Qhstartmax'].iloc[i]
+        Qhs = int(tableShiftabled[:]['Qhstart'].iloc[i])
+        Qhe = int(tableShiftabled[:]['Qhend'].iloc[i])
+        Qhsmin = int(tableShiftabled[:]['Qhstartmin'].iloc[i])
+        Qhsmax = int(tableShiftabled[:]['Qhstartmax'].iloc[i])
         LoadsList[h].SetQhInterval( Qhs, Qhe, Qhsmin, Qhsmax)
         LoadsList[h].SetType( 'Shiftable')
         data=np.array(tableShiftabled[:][hour_list].iloc[i])
@@ -304,24 +307,24 @@ def PlotHourlyPower( Loadslist,title1,title2):
 
 
 """*********************************************************** """ 
-def CostOptimizationMC( LoadsList, Niterations, QoS):
+def CostOptimizationMC( LoadsList, Niterations, QoS, TOOC):
 
     Ecostmin = np.empty([1,Niterations+1])
     Ecosttotal = np.empty([1,Niterations+1])
 
     h=0
-    Ecostmin[0,h] = EnergyCost( LoadsList) 
-    Ecosttotal[0,h] = EnergyCost( LoadsList)
+    Ecostmin[0,h] = EnergyCost( LoadsList, TOOC) 
+    Ecosttotal[0,h] = EnergyCost( LoadsList, TOOC)
 
     LoadsList1 = copy.deepcopy( LoadsList)
 
     for h in range(0,Niterations):
-        Ecost1 = EnergyCost( LoadsList1)
+        Ecost1 = EnergyCost( LoadsList1, TOOC)
 
         LoadsList2 = copy.deepcopy(MonteCarlo( LoadsList))
 
 
-        Ecost2 = EnergyCost( LoadsList2)
+        Ecost2 = EnergyCost( LoadsList2, TOOC)
         Ecosttotal[0,h+1]=Ecost2
         QoSLoadlist2=QoSTotalB (LoadsList,LoadsList2)
         if (QoSLoadlist2 > QoS) & (Ecost2 < Ecost1):
@@ -382,7 +385,7 @@ def MonteCarlo( LoadsList):
 
 
 """*********************************************************** """ 
-def CostOptimizationSA( LoadsList, Niterations, QoS):
+def CostOptimizationSA( LoadsList, Niterations, QoS, TOOC):
 
     # Number of cycles - defined in function CostOptimization
     M=Niterations
@@ -404,16 +407,16 @@ def CostOptimizationSA( LoadsList, Niterations, QoS):
     Ecosttotal = np.empty([1,M*N+1])
 
     h=0
-    Ecostmin[0,h] = EnergyCost( LoadsList) 
-    Ecosttotal[0,h] = EnergyCost( LoadsList)
+    Ecostmin[0,h] = EnergyCost( LoadsList, TOOC) 
+    Ecosttotal[0,h] = EnergyCost( LoadsList, TOOC)
 
     LoadsList1 = copy.deepcopy( LoadsList)
 
     for i in range(0,M):
         for j in range(0,N):
-            Ecost1 = EnergyCost( LoadsList1)
+            Ecost1 = EnergyCost( LoadsList1, TOOC)
             LoadsList2 = copy.deepcopy(SimulatedAnnealing( LoadsList1, k))
-            Ecost2 = EnergyCost( LoadsList2)
+            Ecost2 = EnergyCost( LoadsList2, TOOC)
             Ecosttotal[0,h+1]=Ecost2
             
             ran_1=np.random.rand()
@@ -424,24 +427,24 @@ def CostOptimizationSA( LoadsList, Niterations, QoS):
             if (QoSLoadlist2 >= QoS) & (Ecost2 <= Ecost1):
                 Ecostmin[0,h+1]=Ecost2
                 LoadsList1 = copy.deepcopy( LoadsList2)
-            elif ran_1 <= form:
+            elif (QoSLoadlist2 >= QoS) & (ran_1 <= form):
                 Ecostmin[0,h+1]=Ecost2
                 LoadsList1 = copy.deepcopy( LoadsList2)
             else:
                 Ecostmin[0,h+1]=Ecost1
                 LoadsList1 = copy.deepcopy( LoadsList1)
             if ((h==9) or (h==24) or (h==49) or (h==99) or (h==249) or (h==499)):
-                print (h+1)
-                print(Ecostmin[0,h+1])
+                print ('Iteration: ' + str(h+1))
+                print('Cost function: ' + str(Ecostmin[0,h+1]))
             if  ((h==999) or (h==2499) or (h==4999) or (h==9999) ):
-                print (h+1)
-                print(Ecostmin[0,h+1])
+                print ('Iteration: ' + str(h+1))
+                print('Cost function: ' + str(Ecostmin[0,h+1]))
             if  ((h==14999) or (h==19999) or (h==24999)):
-                print (h+1)
-                print(Ecostmin[0,h+1])
+                print ('Iteration: ' + str(h+1))
+                print('Cost function: ' + str(Ecostmin[0,h+1]))
             if  ((h==29999) or (h==34999) or (h==39999)):
-                print (h+1)
-                print(Ecostmin[0,h+1])
+                print ('Iteration: ' + str(h+1))
+                print('Cost function: ' + str(Ecostmin[0,h+1]))
             h=h+1
         temp=np.append(temp,T0)
         T0=alpha*T0
@@ -466,8 +469,9 @@ def SimulatedAnnealing( LoadsList, k):
                 LoadsList1[i].SetStatus( 0)
         elif LoadsList1[i].sType == 'Shiftable':
             h = random.randint( LoadsList1[i].Qhstartmin, LoadsList1[i].Qhstartmax)
-            D = LoadsList1[i].Qhend - LoadsList1[i].Qhstart 
+            D = int(LoadsList1[i].Qhend - LoadsList1[i].Qhstart )
             LoadsList1[i].fPowerQh = np.array(np.zeros([1,96]))
+            #print('h: ' + str(h) + ', D: ' + str(D) + ', h+D+1: ' + str(h+D+1))
             for j in range( h, h+D+1):
                 LoadsList1[i].fPowerQh[0,j] = LoadsList[i].fPowerQh[0,j-h+LoadsList1[i].Qhstart]
                 LoadsList1[i].Qhstart=h
@@ -477,7 +481,8 @@ def SimulatedAnnealing( LoadsList, k):
                 fs=LoadsList1[i].fScale
                 fsmin = LoadsList1[i].fScaleMin
                 fsnew = random.normalvariate( fs, k*fs*0.1)
-                fs = max( fsmin, fsnew)
+                fs = max( fsmin, min(fsnew,1))
+                #print('fs: ' + str(fs))
                 LoadsList1[i].SetScale( fs)
                 for h in range( 0, 96):
                     LoadsList1[i].fPowerQh[0,h] = fs*LoadsList[i].fPowerQh[0,h]
@@ -491,89 +496,89 @@ def SimulatedAnnealing( LoadsList, k):
 """*********************************************************** """
 """ FUNCTION: ENERGY COST CONSUMPTION OPTIMIZATION"""
   
-def EnergyCost( LoadsList):
+def EnergyCost( LoadsList, CostType):
     
     faP = AggregatePower( LoadsList)
     
-    #ENERGY COST BY PERIODS (EUROS/kWH)
-    P6=0.049571
-    P2=0.087605
-    P1=0.110585
     
-    #PERIOD P0 TO P31
-    suma=0
-    energy=0
+    if CostType == 'CU':
+        CurrentCostMax=np.amax( faP)
+        #print('Max current: ' + str(CurrentCostMax))
+        return CurrentCostMax
+        
+        
+    elif CostType == 'EC':
+        #ENERGY COST BY PERIODS (EUROS/kWH)
+        P6=0.049571
+        P2=0.087605
+        P1=0.110585
    
-    EcostP0P31=0
-    for i in range(0,32):
-        suma = suma+faP[0,i]
-        i = i + 1
-    energy=suma/4
-    EcostP0P31=energy*P6
+        #PERIOD P0 TO P31
+        suma=0
+        energy=0
+   
+        EcostP0P31=0
+        for i in range(0,32):
+            suma = suma+faP[0,i]
+            i = i + 1
+        energy=suma/4
+        EcostP0P31=energy*P6
         
-    #PERIOD P32 TO P39
-    suma=0
-    energy=0
-    EcostP32P39=0
-    for i in range(32,40):
-        suma = suma+faP[0,i]
-        i = i + 1
-    energy=suma/4
-    EcostP32P39=energy*P2
+        #PERIOD P32 TO P39
+        suma=0
+        energy=0
+        EcostP32P39=0
+        for i in range(32,40):
+            suma = suma+faP[0,i]
+            i = i + 1
+        energy=suma/4
+        EcostP32P39=energy*P2
         
-    #PERIOD P40 TO P51
-    suma=0
-    energy=0
-    EcostP40P51=0
-    for i in range(40,52):
-        suma = suma+faP[0,i]
-        i = i + 1
-    energy=suma/4
-    EcostP40P51=energy*P1
+        #PERIOD P40 TO P51
+        suma=0
+        energy=0
+        EcostP40P51=0
+        for i in range(40,52):
+            suma = suma+faP[0,i]
+            i = i + 1
+        energy=suma/4
+        EcostP40P51=energy*P1
         
-    #PERIOD P52 TO P71
-    suma=0
-    energy=0
-    EcostP52P71=0
-    for i in range(52,72):
-        suma = suma+faP[0,i]
-        i = i + 1
-    energy=suma/4
-    EcostP52P71=energy*P2
+        #PERIOD P52 TO P71
+        suma=0
+        energy=0
+        EcostP52P71=0
+        for i in range(52,72):
+            suma = suma+faP[0,i]
+            i = i + 1
+        energy=suma/4
+        EcostP52P71=energy*P2
         
-    #PERIOD P72 TO P83
-    suma=0
-    energy=0
-    EcostP72P83=0
-    for i in range(72,84):
-        suma = suma+faP[0,i]
-        i = i + 1
-    energy=suma/4
-    EcostP72P83=energy*P1
+        #PERIOD P72 TO P83
+        suma=0
+        energy=0
+        EcostP72P83=0
+        for i in range(72,84):
+            suma = suma+faP[0,i]
+            i = i + 1
+        energy=suma/4
+        EcostP72P83=energy*P1
         
-    #PERIOD P72 TO P83
-    suma=0
-    energy=0
-    EcostP84P95=0
-    for i in range(84,96):
-        suma = suma+faP[0,i]
-        i = i + 1
-    energy=suma/4
-    EcostP84P95=energy*P2
+        #PERIOD P72 TO P83
+        suma=0
+        energy=0
+        EcostP84P95=0
+        for i in range(84,96):
+            suma = suma+faP[0,i]
+            i = i + 1
+        energy=suma/4
+        EcostP84P95=energy*P2
         
-    Ecosttotal=EcostP0P31+EcostP32P39+EcostP40P51+EcostP52P71+EcostP72P83+EcostP84P95
-    
-    return Ecosttotal
+        Ecosttotal=EcostP0P31+EcostP32P39+EcostP40P51+EcostP52P71+EcostP72P83+EcostP84P95
+        
+        return Ecosttotal
 
 """*********************************************************** """ 
-
-
-    
-
-      
-
-
-
 
           
 
@@ -666,12 +671,6 @@ def QoSTotalB( LoadsList, OptimizedList):
 
     
 """*********************************************************** """  
-
-
-
-
-
-
 
 
 
