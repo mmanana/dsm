@@ -1,6 +1,6 @@
 """
 Created on December 2017
-Last update: 10th June 2020
+Last update: 3rd February 2022
 
 @author:  Sergio Ortega & Mario Mañana 
 """
@@ -583,7 +583,6 @@ def EnergyCost( LoadsList, CostType):
           
 
 """*********************************************************** """  
-
 """ FUNCTION TO CALCULATE QUALITY OF SERVICE OF INTERRUPTIBLE LOADS """     
         
 def QoSInterruptible ( LoadsList):
@@ -619,8 +618,6 @@ def QoSElastic( LoadsList):
     return QoSElast
 
 """*********************************************************** """  
-
-
 """ FUNCTION TO CALCULATE QUALITY OF SERVICE OF SHIFTABLE LOADS  """    
          
 def QoSShiftable( LoadsList,OptimizedList):
@@ -637,7 +634,6 @@ def QoSShiftable( LoadsList,OptimizedList):
     return QoSShift
 
 """*********************************************************** """  
-
 """ FUNCTION TO CALCULATE QUALITY OF SERVICE OF TOTAL LOADS """    
          
 def QoSTotal( LoadsList, OptimizedList):
@@ -656,7 +652,6 @@ def QoSTotal( LoadsList, OptimizedList):
 
     
 """*********************************************************** """  
-
 """ FUNCTION TO CALCULATE QUALITY OF SERVICE OF TOTAL LOADS WITHOUT PRINT RESULTS"""    
          
 def QoSTotalB( LoadsList, OptimizedList):
